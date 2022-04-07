@@ -1,51 +1,62 @@
 defmodule MongoEctoLite.Repo do
-  ## Queryable
+  @doc false
+  defmacro __using__(opts) do
+    quote bind_quoted: [opts: opts] do
+      # @behaviour MongoEctoLite.Repo
 
-  def all(queryable, query \\ %{}, opts \\ []) do
-    repo = get_dynamic_repo()
-    MongoEctoLite.Repo.Queryable.find(repo, queryable, query, opts)
-  end
+      @default_dynamic_repo opts[:default_dynamic_repo] || __MODULE__
 
-  def get!(queryable, id) do
-    repo = get_dynamic_repo()
-    MongoEctoLite.Repo.Queryable.get!(repo, queryable, id)
-  end
+      ## Queryable
 
-  ## Schemas
+      def all(queryable, query \\ %{}, opts \\ []) do
+        repo = get_dynamic_repo()
+        MongoEctoLite.Repo.Queryable.all(repo, queryable, query, opts)
+      end
 
-  def delete(struct) do
-    repo = get_dynamic_repo()
-    MongoEctoLite.Repo.Schema.delete(repo, struct)
-  end
+      def get!(queryable, id) do
+        repo = get_dynamic_repo()
+        MongoEctoLite.Repo.Queryable.get!(repo, queryable, id)
+      end
 
-  def insert(changeset) do
-    repo = get_dynamic_repo()
-    MongoEctoLite.Repo.Schema.insert(repo, changeset)
-  end
+      ## Schemas
 
-  def update(changeset) do
-    repo = get_dynamic_repo()
-    MongoEctoLite.Repo.Schema.update(repo, changeset)
-  end
+      def delete(struct) do
+        repo = get_dynamic_repo()
+        MongoEctoLite.Repo.Schema.delete(repo, struct)
+      end
 
-  @compile {:inline, get_dynamic_repo: 0}
+      def insert(changeset) do
+        repo = get_dynamic_repo()
+        MongoEctoLite.Repo.Schema.insert(repo, changeset)
+      end
 
-  def get_dynamic_repo() do
-    Process.get({__MODULE__, :dynamic_repo}, __MODULE__)
-  end
+      def update(changeset) do
+        repo = get_dynamic_repo()
+        MongoEctoLite.Repo.Schema.update(repo, changeset)
+      end
 
-  def put_dynamic_repo(dynamic) when is_atom(dynamic) or is_pid(dynamic) do
-    Process.put({__MODULE__, :dynamic_repo}, dynamic) || __MODULE__
-  end
+      @compile {:inline, get_dynamic_repo: 0}
 
-  def with_dynamic_repo(repo, callback) do
-    default_dynamic_repo = get_dynamic_repo()
+      def get_dynamic_repo() do
+        Process.get({__MODULE__, :dynamic_repo}, @default_dynamic_repo)
+      end
 
-    try do
-      MongoEctoLite.Repo.put_dynamic_repo(repo)
-      callback.()
-    after
-      MongoEctoLite.Repo.put_dynamic_repo(default_dynamic_repo)
+      def put_dynamic_repo(dynamic) when is_atom(dynamic) or is_pid(dynamic) do
+        Process.put({__MODULE__, :dynamic_repo}, dynamic) || @default_dynamic_repo
+      end
+
+      def with_dynamic_repo(repo, callback) do
+        default_dynamic_repo = get_dynamic_repo()
+
+        try do
+          put_dynamic_repo(repo)
+          callback.()
+        after
+          put_dynamic_repo(default_dynamic_repo)
+        end
+      end
     end
   end
+
+  @callback get_dynamic_repo() :: atom() | pid()
 end

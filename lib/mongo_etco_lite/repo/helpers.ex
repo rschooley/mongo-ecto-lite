@@ -51,7 +51,7 @@ defmodule MongoEctoLite.Repo.Helpers do
   #
   # turn embed results into struct
   #
-  def struct_embeds!(result, struct) do
+  def struct_embeds!(result, %{__struct__: schema} = struct) do
     # doing one level, update with recursive calls if needed
     schema = struct.__struct__
     embeds = schema.__schema__(:embeds)
@@ -64,5 +64,10 @@ defmodule MongoEctoLite.Repo.Helpers do
 
       Map.replace(acc, embed.field, new_value)
     end)
+  end
+
+  def struct_embeds!(result, _struct) do
+    # handle dynamic repositories
+    result
   end
 end

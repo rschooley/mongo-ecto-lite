@@ -7,7 +7,10 @@ defmodule MongoEctoLite.Repo.SchemaTest do
   @username "root"
   @password "example"
 
-  alias MongoEctoLite.Repo
+  defmodule Repo do
+    use MongoEctoLite.Repo,
+      default_dynamic_repo: :mongo
+  end
 
   defmodule BasicSchema do
     use Ecto.Schema
@@ -63,7 +66,7 @@ defmodule MongoEctoLite.Repo.SchemaTest do
 
     setup do
       conn_opts = [
-        name: MongoEctoLite.Repo,
+        name: :mongo,
         database: @database,
         pool_size: @pool_size,
         auth_source: @auth_source,
@@ -203,7 +206,7 @@ defmodule MongoEctoLite.Repo.SchemaTest do
 
     setup do
       conn_opts = [
-        name: MongoEctoLite.Repo,
+        name: :mongo,
         database: @database,
         pool_size: @pool_size,
         auth_source: @auth_source,
@@ -346,8 +349,166 @@ defmodule MongoEctoLite.Repo.SchemaTest do
     end
   end
 
+  describe "schemaless changesets" do
+    @collection "schemaless"
+    @types %{name: :string, child: :map}
+    @data %{__meta__: %{source: @collection}}
+
+    setup do
+      conn_opts = [
+        name: :mongo,
+        database: @database,
+        pool_size: @pool_size,
+        auth_source: @auth_source,
+        username: @username,
+        password: @password
+      ]
+
+      {:ok, _conn} = Mongo.start_link(conn_opts)
+
+      on_exit(fn ->
+        opts = Keyword.drop(conn_opts, [:name])
+        {:ok, cleanup} = Mongo.start_link(opts)
+        Mongo.drop_collection(cleanup, @collection)
+      end)
+
+      :ok
+    end
+
+    def schemaless_fixture(attrs \\ %{}) do
+      attrs = Enum.into(attrs, %{
+        name: "some name",
+        child: %{
+          name: "some child name"
+        }
+      })
+
+      changeset =
+        {%{__meta__: %{source: @collection}}, @types}
+        |> Ecto.Changeset.cast(attrs, Map.keys(@types))
+
+      {:ok, record} =  Repo.insert(changeset)
+
+      record
+    end
+
+    @invalid_attrs %{name: nil, child: nil}
+
+    test "all/2 returns all records" do
+      fixture = schemaless_fixture()
+      assert Repo.all(@data) == [fixture]
+    end
+
+    test "all/2 with query returns matching record(s)" do
+      _fixture = schemaless_fixture()
+      other_fixture = schemaless_fixture(%{name: "some other name"})
+
+      assert Repo.all(@data, %{name: "some other name"}) == [other_fixture]
+    end
+
+    test "get!/2 returns the record with given id" do
+      fixture = schemaless_fixture()
+      assert Repo.get!(@data, fixture._id) == fixture
+    end
+
+    test "insert/1 with valid changeset" do
+      valid_attrs = %{name: "some name", child: %{name: "some child name"}}
+
+      changeset =
+        {@data, @types}
+        |> Ecto.Changeset.cast(valid_attrs, Map.keys(@types))
+
+      assert {:ok, %{} = inserted} = Repo.insert(changeset)
+
+      assert inserted._id
+      assert inserted.name == valid_attrs.name
+      assert inserted.child.name == valid_attrs.child.name
+
+      assert queried = Repo.get!(@data, inserted._id)
+      assert queried._id == inserted._id
+      assert queried.name == inserted.name
+      assert queried.child.name == inserted.child.name
+    end
+
+    test "insert/1 with invalid changeset returns error changeset" do
+      changeset =
+        {@data, @types}
+        |> Ecto.Changeset.cast(@invalid_attrs, Map.keys(@types))
+        |> Ecto.Changeset.validate_required([:name, :child])
+
+      assert {:error, %Ecto.Changeset{}} = Repo.insert(changeset)
+    end
+
+    test "update/1 with valid changeset" do
+      fixture = schemaless_fixture()
+      update_attrs = %{name: "some updated name", child: %{name: "some updated child name"}}
+      data = Map.merge(fixture, @data)
+
+      changeset =
+        {data, @types}
+        |> Ecto.Changeset.cast(update_attrs, Map.keys(@types))
+
+      assert {:ok, %{} = updated} = Repo.update(changeset)
+
+      assert updated._id == fixture._id
+      assert updated.updated_at != fixture.updated_at
+      assert updated.child.name == update_attrs.child.name
+
+      assert queried = Repo.get!(@data, fixture._id)
+      assert queried._id == fixture._id
+      assert queried.name == update_attrs.name
+      assert queried.child.name == update_attrs.child.name
+    end
+
+    test "update/1 with valid changeset for partial child" do
+      fixture = schemaless_fixture(%{child: %{name: "some child name", other: "some other field"}})
+      update_attrs = %{name: "some updated name", child: %{name: "some updated child name"}}
+      data = Map.merge(fixture, @data)
+
+      changeset =
+        {data, @types}
+        |> Ecto.Changeset.cast(update_attrs, Map.keys(@types))
+
+      assert {:ok, %{} = updated} = Repo.update(changeset)
+
+      assert updated._id == fixture._id
+      assert updated.child.name == update_attrs.child.name
+      assert updated.child.other == fixture.child.other
+
+      assert queried = Repo.get!(@data, fixture._id)
+      assert queried._id == fixture._id
+      assert queried.updated_at > fixture.updated_at
+      assert queried.name == update_attrs.name
+      assert queried.child.name == update_attrs.child.name
+      assert queried.child.other == fixture.child.other
+    end
+
+    test "update/1 with invalid changeset returns error changeset" do
+      fixture = schemaless_fixture()
+      data = Map.merge(fixture, @data)
+
+      changeset =
+        {data, @types}
+        |> Ecto.Changeset.cast(@invalid_attrs, Map.keys(@types))
+        |> Ecto.Changeset.validate_required([:name, :child])
+
+      assert {:error, %Ecto.Changeset{}} = Repo.update(changeset)
+    end
+
+    test "delete/1 deletes the record" do
+      fixture = schemaless_fixture()
+      data = Map.merge(fixture, @data)
+
+      changeset =
+        {data, @types}
+        |> Ecto.Changeset.change()
+
+      assert {:ok, %{}} = Repo.delete(changeset)
+      assert_raise Ecto.NoResultsError, fn -> Repo.get!(@data, fixture._id) end
+    end
+  end
+
   describe "dynamic repositories" do
-    alias MongoEctoLite.Repo
     alias BasicSchema, as: Schema
 
     setup do

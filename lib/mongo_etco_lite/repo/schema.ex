@@ -66,6 +66,10 @@ defmodule MongoEctoLite.Repo.Schema do
     {:error, changeset}
   end
 
+  def delete(repo, %Changeset{} = changeset) do
+    do_delete(repo, changeset)
+  end
+
   def delete(repo, %{__struct__: _} = struct) do
     do_delete(repo, Ecto.Changeset.change(struct))
   end
@@ -74,13 +78,19 @@ defmodule MongoEctoLite.Repo.Schema do
     collection_struct = struct_from_changeset!(:insert, changeset)
     collection_name = collection_name_from_changeset!(changeset)
 
+    # TODO: pull @primary_key from Schema
     id = Map.fetch!(changeset.data, :_id)
 
-    {:ok, _} = Mongo.delete_one(repo, collection_name, %{_id: id})
-    {:ok, collection_struct}
+    case Mongo.delete_one(repo, collection_name, %{_id: id}) do
+      {:ok, _} ->
+        {:ok, collection_struct}
+
+      {:error, err} ->
+        {:error, err}
+    end
   end
 
-  defp do_delete(repo, %Changeset{valid?: false} = changeset) do
+  defp do_delete(_repo, %Changeset{valid?: false} = changeset) do
     {:error, changeset}
   end
 
