@@ -12,5 +12,5 @@ end
 
 defimpl MongoEctoLite.Repo.Metadata, for: Map do
   def collection_name(map), do: map.__meta__.source
-  def struct(map), do: nil
+  def struct(_map), do: nil
 end

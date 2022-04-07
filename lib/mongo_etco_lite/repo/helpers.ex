@@ -11,7 +11,7 @@ defmodule MongoEctoLite.Repo.Helpers do
   defp to_list_of_tuples(m) do
     m
     |> Enum.map(&process/1)
-    |> List.flatten
+    |> List.flatten()
   end
 
   defp process({key, sub_map}) when is_map(sub_map) do
@@ -51,12 +51,12 @@ defmodule MongoEctoLite.Repo.Helpers do
   #
   # turn embed results into struct
   #
-  def struct_embeds!(result, %{__struct__: schema} = struct) do
+  def struct_embeds!(result, %{__struct__: _schema} = struct) do
     # doing one level, update with recursive calls if needed
     schema = struct.__struct__
     embeds = schema.__schema__(:embeds)
 
-    Enum.reduce(embeds, result, fn (item, acc) ->
+    Enum.reduce(embeds, result, fn item, acc ->
       embed = schema.__schema__(:embed, item)
 
       old_value = Map.get(result, embed.field)

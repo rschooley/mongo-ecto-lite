@@ -86,12 +86,13 @@ defmodule MongoEctoLite.Repo.SchemaTest do
     end
 
     def basic_schema_fixture(attrs \\ %{}) do
-      attrs = Enum.into(attrs, %{
-        name: "some name",
-        child: %{
-          name: "some child name"
-        }
-      })
+      attrs =
+        Enum.into(attrs, %{
+          name: "some name",
+          child: %{
+            name: "some child name"
+          }
+        })
 
       {:ok, record} =
         %Schema{}
@@ -124,9 +125,9 @@ defmodule MongoEctoLite.Repo.SchemaTest do
       valid_attrs = %{name: "some name", child: %{name: "some child name"}}
 
       assert {:ok, %Schema{} = inserted} =
-        %Schema{}
-        |> Schema.changeset(valid_attrs)
-        |> Repo.insert()
+               %Schema{}
+               |> Schema.changeset(valid_attrs)
+               |> Repo.insert()
 
       assert inserted._id
       assert inserted.name == valid_attrs.name
@@ -149,9 +150,9 @@ defmodule MongoEctoLite.Repo.SchemaTest do
       update_attrs = %{name: "some updated name", child: %{name: "some updated child name"}}
 
       assert {:ok, %Schema{} = updated} =
-        fixture
-        |> Schema.changeset(update_attrs)
-        |> Repo.update()
+               fixture
+               |> Schema.changeset(update_attrs)
+               |> Repo.update()
 
       assert updated._id == fixture._id
       assert updated.updated_at != fixture.updated_at
@@ -164,13 +165,15 @@ defmodule MongoEctoLite.Repo.SchemaTest do
     end
 
     test "update/1 with valid changeset for partial child" do
-      fixture = basic_schema_fixture(%{child: %{name: "some child name", other: "some other field"}})
+      fixture =
+        basic_schema_fixture(%{child: %{name: "some child name", other: "some other field"}})
+
       update_attrs = %{name: "some updated name", child: %{name: "some updated child name"}}
 
       assert {:ok, %Schema{} = updated} =
-        fixture
-        |> Schema.changeset(update_attrs)
-        |> Repo.update()
+               fixture
+               |> Schema.changeset(update_attrs)
+               |> Repo.update()
 
       assert updated._id == fixture._id
       assert updated.child.name == update_attrs.child.name
@@ -188,9 +191,9 @@ defmodule MongoEctoLite.Repo.SchemaTest do
       fixture = basic_schema_fixture()
 
       assert {:error, %Ecto.Changeset{}} =
-        fixture
-        |> Schema.changeset(@invalid_attrs)
-        |> Repo.update()
+               fixture
+               |> Schema.changeset(@invalid_attrs)
+               |> Repo.update()
     end
 
     test "delete/1 deletes the record" do
@@ -226,13 +229,14 @@ defmodule MongoEctoLite.Repo.SchemaTest do
     end
 
     def embeds_one_schema_fixture(attrs \\ %{}) do
-      attrs = Enum.into(attrs, %{
-        name: "some name",
-        child: %{
-          name: "some child name",
-          other: "some child other"
-        }
-      })
+      attrs =
+        Enum.into(attrs, %{
+          name: "some name",
+          child: %{
+            name: "some child name",
+            other: "some child other"
+          }
+        })
 
       {:ok, record} =
         %Schema{}
@@ -262,12 +266,15 @@ defmodule MongoEctoLite.Repo.SchemaTest do
     end
 
     test "insert/1 with valid changeset" do
-      valid_attrs = %{name: "some name", child: %{name: "some child name", other: "some child other"}}
+      valid_attrs = %{
+        name: "some name",
+        child: %{name: "some child name", other: "some child other"}
+      }
 
       assert {:ok, %Schema{} = inserted} =
-        %Schema{}
-        |> Schema.changeset(valid_attrs)
-        |> Repo.insert()
+               %Schema{}
+               |> Schema.changeset(valid_attrs)
+               |> Repo.insert()
 
       assert inserted._id
       assert inserted.name == valid_attrs.name
@@ -289,12 +296,16 @@ defmodule MongoEctoLite.Repo.SchemaTest do
 
     test "update/1 with valid changeset" do
       fixture = embeds_one_schema_fixture()
-      update_attrs = %{name: "some updated name", child: %{name: "some updated child name", other: "some updated child other"}}
+
+      update_attrs = %{
+        name: "some updated name",
+        child: %{name: "some updated child name", other: "some updated child other"}
+      }
 
       assert {:ok, %Schema{} = updated} =
-        fixture
-        |> Schema.changeset(update_attrs)
-        |> Repo.update()
+               fixture
+               |> Schema.changeset(update_attrs)
+               |> Repo.update()
 
       assert updated._id == fixture._id
       assert updated.updated_at > fixture.updated_at
@@ -314,9 +325,9 @@ defmodule MongoEctoLite.Repo.SchemaTest do
       update_attrs = %{name: "some updated name", child: %{name: "some updated child name"}}
 
       assert {:ok, %Schema{} = updated} =
-        fixture
-        |> Schema.changeset(update_attrs)
-        |> Repo.update()
+               fixture
+               |> Schema.changeset(update_attrs)
+               |> Repo.update()
 
       assert updated._id == fixture._id
       assert updated.updated_at > fixture.updated_at
@@ -336,9 +347,9 @@ defmodule MongoEctoLite.Repo.SchemaTest do
       fixture = embeds_one_schema_fixture()
 
       assert {:error, %Ecto.Changeset{}} =
-        fixture
-        |> Schema.changeset(@invalid_attrs)
-        |> Repo.update()
+               fixture
+               |> Schema.changeset(@invalid_attrs)
+               |> Repo.update()
     end
 
     test "delete/1 deletes the record" do
@@ -376,18 +387,19 @@ defmodule MongoEctoLite.Repo.SchemaTest do
     end
 
     def schemaless_fixture(attrs \\ %{}) do
-      attrs = Enum.into(attrs, %{
-        name: "some name",
-        child: %{
-          name: "some child name"
-        }
-      })
+      attrs =
+        Enum.into(attrs, %{
+          name: "some name",
+          child: %{
+            name: "some child name"
+          }
+        })
 
       changeset =
         {%{__meta__: %{source: @collection}}, @types}
         |> Ecto.Changeset.cast(attrs, Map.keys(@types))
 
-      {:ok, record} =  Repo.insert(changeset)
+      {:ok, record} = Repo.insert(changeset)
 
       record
     end
@@ -461,7 +473,9 @@ defmodule MongoEctoLite.Repo.SchemaTest do
     end
 
     test "update/1 with valid changeset for partial child" do
-      fixture = schemaless_fixture(%{child: %{name: "some child name", other: "some other field"}})
+      fixture =
+        schemaless_fixture(%{child: %{name: "some child name", other: "some other field"}})
+
       update_attrs = %{name: "some updated name", child: %{name: "some updated child name"}}
       data = Map.merge(fixture, @data)
 
@@ -542,16 +556,16 @@ defmodule MongoEctoLite.Repo.SchemaTest do
 
       Repo.with_dynamic_repo(conn_1, fn ->
         assert {:ok, _} =
-          %Schema{}
-          |> Schema.changeset(item_1)
-          |> Repo.insert()
+                 %Schema{}
+                 |> Schema.changeset(item_1)
+                 |> Repo.insert()
       end)
 
       Repo.with_dynamic_repo(conn_2, fn ->
         assert {:ok, _} =
-          %Schema{}
-          |> Schema.changeset(item_2)
-          |> Repo.insert()
+                 %Schema{}
+                 |> Schema.changeset(item_2)
+                 |> Repo.insert()
       end)
 
       Repo.with_dynamic_repo(conn_1, fn ->
