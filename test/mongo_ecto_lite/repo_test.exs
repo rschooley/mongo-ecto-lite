@@ -522,7 +522,6 @@ defmodule MongoEctoLite.Repo.SchemaTest do
       assert {:ok, %Schema{} = updated} =
                fixture
                |> Schema.changeset(update_attrs)
-               |> IO.inspect()
                |> Repo.update()
 
       assert updated._id == fixture._id
