@@ -508,6 +508,41 @@ defmodule MongoEctoLite.Repo.SchemaTest do
       assert hd(queried.child).other == hd(update_attrs.child).other
     end
 
+    test "update/1 children with valid changeset" do
+      fixture = embeds_many_schema_fixture()
+
+      update_attrs = %{
+        name: "some updated name",
+        child: [
+          %{name: "some child name", other: "some other 1"},
+          %{name: "item 2", other: "some other 2"}
+        ]
+      }
+
+      assert {:ok, %Schema{} = updated} =
+               fixture
+               |> Schema.changeset(update_attrs)
+               |> IO.inspect()
+               |> Repo.update()
+
+      assert updated._id == fixture._id
+      assert updated.updated_at > fixture.updated_at
+
+      update_attrs.child |> Enum.with_index |> Enum.each(fn {item, index} ->
+        assert Enum.at(updated.child, index).name == item.name
+        assert Enum.at(updated.child, index).other == item.other
+      end)
+
+      assert queried = Repo.get!(Schema, fixture._id)
+      assert queried._id == fixture._id
+      assert queried.updated_at > fixture.updated_at
+
+      update_attrs.child |> Enum.with_index |> Enum.each(fn {item, index} ->
+        assert Enum.at(queried.child, index).name == item.name
+        assert Enum.at(queried.child, index).other == item.other
+      end)
+    end
+
     test "update/1 with invalid changeset returns error changeset" do
       fixture = embeds_many_schema_fixture()
 
