@@ -56,14 +56,25 @@ defmodule MongoEctoLite.Repo.Helpers do
     schema = struct.__struct__
     embeds = schema.__schema__(:embeds)
 
-    Enum.reduce(embeds, result, fn item, acc ->
-      embed = schema.__schema__(:embed, item)
+    reduced_embeds =
+      Enum.reduce(embeds, %{}, fn item, acc ->
+        embed = schema.__schema__(:embed, item)
 
-      old_value = Map.get(result, embed.field)
-      new_value = Kernel.struct!(embed.related, old_value)
+        old_value = Map.get(result, embed.field)
+        new_value = do_struct_embeds!(embed.cardinality, embed.related, old_value)
 
-      Map.replace(acc, embed.field, new_value)
-    end)
+        Map.put(acc, embed.field, new_value)
+      end)
+
+    Map.merge(result, reduced_embeds)
+  end
+
+  defp do_struct_embeds!(:many, struct, values) do
+    Enum.map(values, fn item -> Kernel.struct!(struct, item) end)
+  end
+
+  defp do_struct_embeds!(:one, struct, values) do
+    Kernel.struct!(struct, values)
   end
 
   def struct_embeds!(result, _struct) do

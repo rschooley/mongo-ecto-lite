@@ -33,7 +33,7 @@ defmodule MongoEctoLite.Repo.Schema do
   end
 
   defp do_insert(_repo, %Changeset{valid?: false} = changeset) do
-    {:error, changeset}
+    {:error, put_action(changeset, :insert)}
   end
 
   def update(repo, %Changeset{} = changeset) do
@@ -94,6 +94,9 @@ defmodule MongoEctoLite.Repo.Schema do
     {:error, changeset}
   end
 
+  defp put_action(changeset, action),
+    do: %{changeset | action: action}
+
   defp struct_from_changeset!(action, %{data: nil}),
     do: raise(ArgumentError, "cannot #{action} a changeset without :data")
 
@@ -119,6 +122,19 @@ defmodule MongoEctoLite.Repo.Schema do
 
   defp do_changes({k, %Changeset{} = v}, acc) do
     Map.put(acc, k, do_changes(v))
+  end
+
+  defp do_changes({k, v}, acc) when is_list(v) do
+    child_changeset_changes = Enum.map(v, fn child_changeset -> child_changeset.changes end)
+
+    # TODO:
+    # Ecto changesets for embeds_many without primary keys and on_replace: :delete
+    # leaves empty maps in the list
+    # this could be a desired input for some use cases, need to revisit
+    # https://hexdocs.pm/ecto/Ecto.Schema.html#embeds_many/3
+    child_changeset_changes = Enum.filter(child_changeset_changes, fn item -> item != %{} end)
+
+    Map.put(acc, k, child_changeset_changes)
   end
 
   defp do_changes({k, v}, acc) do
