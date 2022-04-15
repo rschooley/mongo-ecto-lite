@@ -2,6 +2,16 @@ defmodule MongoEctoLite.Repo.Schema do
   alias Ecto.Changeset
   alias MongoEctoLite.Repo.Helpers
 
+  def insert!(repo, struct_or_changeset) do
+    case insert(repo, struct_or_changeset) do
+      {:ok, struct} ->
+        struct
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        raise Ecto.InvalidChangesetError, action: :insert, changeset: changeset
+    end
+  end
+
   def insert(repo, %Changeset{} = changeset) do
     do_insert(repo, changeset)
   end

@@ -1,7 +1,7 @@
 defmodule MongoEctoLite.Repo.Queryable do
   alias MongoEctoLite.Repo.{Helpers, Metadata}
 
-  def all(repo, queryable, query, opts \\ []) do
+  def all(repo, queryable, query, opts) do
     collection_name = Metadata.collection_name(queryable)
     struct = Metadata.struct(queryable)
 
@@ -12,11 +12,35 @@ defmodule MongoEctoLite.Repo.Queryable do
     |> Enum.map(fn item -> Helpers.struct_embeds!(item, struct) end)
   end
 
-  def get!(repo, queryable, id, opts \\ []) do
+  def get!(repo, queryable, id, opts) do
     case all(repo, queryable, %{_id: id}, opts) do
       [one] -> one
       [] -> raise Ecto.NoResultsError, queryable: queryable
       other -> raise Ecto.MultipleResultsError, queryable: queryable, count: length(other)
+    end
+  end
+
+  def get_by(repo, queryable, query, opts) do
+    one(repo, queryable, query, opts)
+  end
+
+  def one(repo, queryable, query, opts) do
+    case all(repo, queryable, query, opts) do
+      [one] -> one
+      [] -> nil
+      other -> raise Ecto.MultipleResultsError, queryable: queryable, count: length(other)
+    end
+  end
+
+  def delete_all(repo, queryable, query, opts) do
+    collection_name = Metadata.collection_name(queryable)
+
+    case Mongo.delete_many(repo, collection_name, query, opts) do
+      {:ok, _} ->
+        :ok
+
+      {:error, err} ->
+        {:error, err}
     end
   end
 

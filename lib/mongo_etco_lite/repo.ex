@@ -13,9 +13,24 @@ defmodule MongoEctoLite.Repo do
         MongoEctoLite.Repo.Queryable.all(repo, queryable, query, opts)
       end
 
-      def get!(queryable, id) do
+      def get!(queryable, id, opts \\ []) do
         repo = get_dynamic_repo()
-        MongoEctoLite.Repo.Queryable.get!(repo, queryable, id)
+        MongoEctoLite.Repo.Queryable.get!(repo, queryable, id, opts)
+      end
+
+      def get_by(queryable, id, opts \\ []) do
+        repo = get_dynamic_repo()
+        MongoEctoLite.Repo.Queryable.get_by(repo, queryable, id, opts)
+      end
+
+      def one(queryable, query \\ %{}, opts \\ []) do
+        repo = get_dynamic_repo()
+        MongoEctoLite.Repo.Queryable.one(repo, queryable, query, opts)
+      end
+
+      def delete_all(queryable, query, opts \\ []) do
+        repo = get_dynamic_repo()
+        MongoEctoLite.Repo.Queryable.delete_all(repo, queryable, query, opts)
       end
 
       ## Schemas
@@ -28,6 +43,11 @@ defmodule MongoEctoLite.Repo do
       def insert(changeset) do
         repo = get_dynamic_repo()
         MongoEctoLite.Repo.Schema.insert(repo, changeset)
+      end
+
+      def insert!(changeset) do
+        repo = get_dynamic_repo()
+        MongoEctoLite.Repo.Schema.insert!(repo, changeset)
       end
 
       def update(changeset) do

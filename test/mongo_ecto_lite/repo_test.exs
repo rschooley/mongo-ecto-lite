@@ -151,6 +151,34 @@ defmodule MongoEctoLite.Repo.SchemaTest do
       assert Repo.get!(Schema, fixture._id) == fixture
     end
 
+    test "get_by/2 returns the record matching the query" do
+      fixture = basic_schema_fixture()
+      _other_fixture = basic_schema_fixture(%{name: "some other name"})
+
+      assert Repo.get_by(Schema, %{name: fixture.name}) == fixture
+    end
+
+    test "get_by/2 with two matches raises error" do
+      fixture = basic_schema_fixture()
+      _other_fixture = basic_schema_fixture()
+
+      assert_raise Ecto.MultipleResultsError, fn -> Repo.get_by(Schema, %{name: fixture.name}) end
+    end
+
+    test "one/2 returns the record matching the query" do
+      fixture = basic_schema_fixture()
+      _other_fixture = basic_schema_fixture(%{name: "some other name"})
+
+      assert Repo.one(Schema, %{name: fixture.name}) == fixture
+    end
+
+    test "one/2 with two matches raises error" do
+      fixture = basic_schema_fixture()
+      _other_fixture = basic_schema_fixture()
+
+      assert_raise Ecto.MultipleResultsError, fn -> Repo.one(Schema, %{name: fixture.name}) end
+    end
+
     test "insert/1 with valid changeset" do
       valid_attrs = %{name: "some name", child: %{name: "some child name"}}
 
@@ -173,6 +201,30 @@ defmodule MongoEctoLite.Repo.SchemaTest do
       changeset = Schema.changeset(%Schema{}, @invalid_attrs)
 
       assert {:error, %Ecto.Changeset{}} = Repo.insert(changeset)
+    end
+
+    test "insert!/1 with valid changeset" do
+      valid_attrs = %{name: "some name", child: %{name: "some child name"}}
+
+      assert %Schema{} = inserted =
+               %Schema{}
+               |> Schema.changeset(valid_attrs)
+               |> Repo.insert!()
+
+      assert inserted._id
+      assert inserted.name == valid_attrs.name
+      assert inserted.child.name == valid_attrs.child.name
+
+      assert queried = Repo.get!(Schema, inserted._id)
+      assert queried._id == inserted._id
+      assert queried.name == inserted.name
+      assert queried.child.name == inserted.child.name
+    end
+
+    test "insert!/1 with invalid changeset raises error" do
+      changeset = Schema.changeset(%Schema{}, @invalid_attrs)
+
+      assert_raise Ecto.InvalidChangesetError, fn -> Repo.insert!(changeset) end
     end
 
     test "update/1 with valid changeset" do
@@ -224,6 +276,17 @@ defmodule MongoEctoLite.Repo.SchemaTest do
                fixture
                |> Schema.changeset(@invalid_attrs)
                |> Repo.update()
+    end
+
+    test "delete_all/2 deletes the matching records" do
+      fixture = basic_schema_fixture()
+      _fixture_2 = basic_schema_fixture(%{name: "match this"})
+      _fixture_3 = basic_schema_fixture(%{name: "match this"})
+
+      assert :ok = Repo.delete_all(Schema, %{name: "match this"})
+
+      assert Repo.all(Schema, %{name: "match this"}) == []
+      assert Repo.all(Schema, %{name: fixture.name}) == [fixture]
     end
 
     test "delete/1 deletes the record" do
