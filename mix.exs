@@ -22,7 +22,7 @@ defmodule MongoEctoLite.MixProject do
   defp deps do
     [
       {:ecto, "~> 3.7"},
-      {:mongodb_driver, "~> 0.8.3"}
+      {:mongodb_driver, "~> 0.9.1"}
     ]
   end
 end
